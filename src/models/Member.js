@@ -41,6 +41,38 @@ const Member = sequelize.define('members', {
     allowNull: false,
     defaultValue: 'active',
   },
+  // Pengunduran diri
+  resignationStatus: {
+    type: DataTypes.ENUM('none', 'pending', 'approved', 'rejected'),
+    allowNull: false,
+    defaultValue: 'none',
+    field: 'resignation_status',
+  },
+  resignationReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    field: 'resignation_reason',
+  },
+  resignationRequestedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'resignation_requested_at',
+  },
+  resignationReviewedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'resignation_reviewed_at',
+  },
+  resignationReviewedBy: {
+    type: DataTypes.STRING(30),
+    allowNull: true,
+    field: 'resignation_reviewed_by',
+  },
+  resignationNotes: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    field: 'resignation_notes',
+  },
   occupation: {
     type: DataTypes.STRING(100),
     allowNull: true,
