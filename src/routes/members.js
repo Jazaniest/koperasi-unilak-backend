@@ -29,4 +29,15 @@ router.put('/:id', authorize(...ADMIN_ROLES), c.updateMember)
 // Aktifkan/nonaktifkan — hanya admin
 router.patch('/:id/status', authorize(...ADMIN_ROLES), c.setMemberStatus)
 
+// ── Pengunduran diri ────────────────────────────────────────────────────────
+
+// Anggota ajukan pengunduran diri
+router.post('/me/resignation', c.submitResignation)
+
+// Bendahara lihat daftar pending
+router.get('/resignations/pending', authorize('bendahara', 'admin', 'super_admin'), c.getPendingResignations)
+
+// Bendahara setujui / tolak
+router.post('/:id/resignation/review', authorize('bendahara', 'admin', 'super_admin'), c.reviewResignation)
+
 module.exports = router
