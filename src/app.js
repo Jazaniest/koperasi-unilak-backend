@@ -3,6 +3,7 @@ const express = require('express')
 const cors = require('cors')
 
 const app = express()
+const path = require('path')
 
 // ── Middleware global ─────────────────────────────────────────────────────────
 app.use(cors({
@@ -25,6 +26,8 @@ app.use('/api/loans',             require('./routes/loans'))
 app.use('/api/loan-applications', require('./routes/loanApplications'))
 app.use('/api/treasurer',         require('./routes/treasurer'))
 app.use('/api/system',            require('./routes/system'))
+app.use('/api/registrations',     require('./routes/registrations'))
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((req, res) => {
