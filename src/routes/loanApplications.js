@@ -1,6 +1,7 @@
 const router = require('express').Router()
 const c = require('../controllers/loanApplicationController')
 const { authenticate, authorize } = require('../middlewares/auth')
+const upload = require('../middlewares/upload')
 
 const ADMIN_ROLES = ['admin', 'super_admin', 'bendahara']
 const STAFF_ROLES = ['admin', 'super_admin', 'bendahara', 'user']
@@ -14,7 +15,7 @@ router.get('/', authorize(...STAFF_ROLES), c.getAllApplications)
 router.get('/member/:memberId', c.getMemberApplications)
 
 // Ajukan pinjaman baru — anggota (role: user)
-router.post('/loan', authorize('user'), c.submitApplication)
+router.post('/loan', authorize('user'), upload.single('collateral'), c.submitApplication)
 
 // Review pengajuan (approve/reject) — admin
 router.post('/:id/review', authorize(...ADMIN_ROLES), c.reviewApplication)
