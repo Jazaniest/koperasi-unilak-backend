@@ -195,6 +195,115 @@ async function setMemberStatus(memberId, status) {
     return { success: true }
 }
 
+/**
+ * Anggota mengajukan pengunduran diri
+ * Syarat: tidak ada pinjaman aktif
+ */
+async function submitResignation(memberId, reason) {
+    const member = await Member.findByPk(memberId, {
+        include: [{ model: Loan, as: 'loans', attributes: ['id', 'status', 'remaining'] }],
+    })
+    if (!member) return { success: false, error: 'Anggota tidak ditemukan' }
+
+    if (member.resignationStatus === 'pending') {
+        return { success: false, error: 'Pengajuan pengunduran diri sudah ada dan sedang ditinjau' }
+    }
+
+    const activeLoans = (member.loans ?? []).filter(
+        (l) => l.status === 'active' && Number(l.remaining) > 0,
+    )
+    if (activeLoans.length > 0) {
+        return {
+            success: false,
+            error: 'Tidak dapat mengajukan pengunduran diri karena masih memiliki pinjaman aktif',
+        }
+    }
+
+    await member.update({
+        resignationStatus: 'pending',
+        resignationReason: reason || null,
+        resignationRequestedAt: new Date(),
+        resignationReviewedAt: null,
+        resignationReviewedBy: null,
+        resignationNotes: null,
+    })
+
+    return { success: true }
+}
+
+/**
+ * Bendahara meninjau pengajuan pengunduran diri
+ * decision: 'approved' | 'rejected'
+ * Jika approved → nonaktifkan member & user
+ */
+async function reviewResignation(memberId, reviewerUserId, decision, notes) {
+    if (!['approved', 'rejected'].includes(decision)) {
+        return { success: false, error: 'Keputusan tidak valid' }
+    }
+
+    const member = await Member.findByPk(memberId, {
+        include: [
+            { model: User, as: 'user' },
+            { model: Loan, as: 'loans', attributes: ['id', 'status', 'remaining'] },
+        ],
+    })
+    if (!member) return { success: false, error: 'Anggota tidak ditemukan' }
+    if (member.resignationStatus !== 'pending') {
+        return { success: false, error: 'Tidak ada pengajuan pengunduran diri yang menunggu' }
+    }
+
+    if (decision === 'approved') {
+        // Cek ulang pinjaman aktif saat disetujui
+        const activeLoans = (member.loans ?? []).filter(
+            (l) => l.status === 'active' && Number(l.remaining) > 0,
+        )
+        if (activeLoans.length > 0) {
+            return {
+                success: false,
+                error: 'Anggota masih memiliki pinjaman aktif, tidak dapat disetujui',
+            }
+        }
+
+        await member.update({ status: 'inactive' })
+        if (member.user) {
+            await member.user.update({ role: 'user' }) // tetap user, tapi member inactive
+        }
+    }
+
+    await member.update({
+        resignationStatus: decision,
+        resignationReviewedAt: new Date(),
+        resignationReviewedBy: reviewerUserId,
+        resignationNotes: notes || null,
+    })
+
+    return { success: true }
+}
+
+/**
+ * Ambil semua anggota dengan pengajuan pengunduran diri pending
+ */
+async function getPendingResignations() {
+    const members = await Member.findAll({
+        where: { resignationStatus: 'pending' },
+        include: [{ model: User, as: 'user', attributes: USER_SAFE_ATTRS }],
+        order: [['resignation_requested_at', 'ASC']],
+    })
+    return members.map((m) => {
+        const raw = m.toJSON()
+        return {
+            id: raw.id,
+            memberNumber: raw.memberNumber,
+            name: raw.user?.name ?? '—',
+            email: raw.user?.email ?? '—',
+            phone: raw.user?.phone ?? '—',
+            resignationStatus: raw.resignationStatus,
+            resignationReason: raw.resignationReason,
+            resignationRequestedAt: raw.resignationRequestedAt,
+        }
+    })
+}
+
 module.exports = {
     getAllMembers,
     getMemberById,
@@ -203,4 +312,7 @@ module.exports = {
     createMember,
     updateMember,
     setMemberStatus,
+    submitResignation,
+    reviewResignation,
+    getPendingResignations,
 }
