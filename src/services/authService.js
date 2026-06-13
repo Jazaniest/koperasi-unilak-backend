@@ -14,18 +14,18 @@ async function login(email, password) {
         include: [{ model: Member, as: 'member', attributes: ['id', 'memberNumber', 'status'] }],
     })
 
-    
     if (!user) {
         return { success: false, error: 'Email atau kata sandi salah' }
     }
-    
+
     const match = await bcrypt.compare(password, user.password)
     if (!match) {
-        console.log('Password FE:', password)
-        console.log('Password BE:', user.password)
         return { success: false, error: 'Email atau kata sandi salah' }
     }
-    
+
+    if (user.member && user.member.status === 'inactive') {
+        return { success: false, error: 'Akun Anda sudah nonaktif. Hubungi pengurus koperasi untuk informasi lebih lanjut.' }
+    }
 
     const payload = {
         id: user.id,
@@ -44,7 +44,6 @@ async function login(email, password) {
         message: `Login: ${user.email} (${user.role})`,
     })
 
-    // Jangan kembalikan password ke client
     const { password: _, ...safeUser } = user.toJSON()
 
     return { success: true, token, user: safeUser }
@@ -83,4 +82,61 @@ async function hashPassword(plain) {
     return bcrypt.hash(plain, BCRYPT_ROUNDS)
 }
 
-module.exports = { login, changePassword, hashPassword }
+/**
+ * Ambil data member berdasarkan user_id.
+ * Dipakai untuk GET /api/auth/me/member
+ */
+async function getMemberProfile(userId) {
+    const member = await Member.findOne({
+        where: { user_id: userId },
+        attributes: [
+            'id',
+            'member_number',
+            'nik',
+            'birth_place_and_date',
+            'address',
+            'occupation',
+            'monthly_income',
+            'join_date',
+            'status',
+        ],
+    })
+
+    if (!member) {
+        return { success: false, error: 'Data member tidak ditemukan' }
+    }
+
+    return { success: true, data: member }
+}
+
+/**
+ * Update profil user + data member terkait.
+ * Dipakai untuk PUT /api/auth/me/profile
+ * Fields user  : name, phone
+ * Fields member: nik, birth_place_and_date, address, occupation
+ */
+async function updateProfile(userId, { name, phone, nik, birth_place_and_date, address, occupation }) {
+    const user = await User.findByPk(userId)
+    if (!user) {
+        return { success: false, error: 'User tidak ditemukan' }
+    }
+
+    // Update tabel users
+    await user.update({ name, phone })
+
+    // Update tabel members (jika ada record-nya)
+    const member = await Member.findOne({ where: { user_id: userId } })
+    if (member) {
+        await member.update({ nik, birth_place_and_date, address, occupation })
+    }
+
+    await SystemLog.create({
+        id: generateId('log'),
+        level: 'info',
+        message: `Update profil: ${user.email}`,
+    })
+
+    return { success: true }
+}
+
+module.exports = { login, changePassword, hashPassword, getMemberProfile, updateProfile }
