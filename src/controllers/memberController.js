@@ -89,6 +89,53 @@ async function setMemberStatus(req, res) {
     return ok(res, null, `Anggota berhasil di-${status === 'active' ? 'aktifkan' : 'nonaktifkan'}`)
 }
 
+/**
+ * POST /api/members/me/resignation
+ * Anggota mengajukan pengunduran diri
+ * Body: { reason }
+ */
+async function submitResignation(req, res) {
+    const member = await memberService.getMemberByUserId(req.user.id)
+    if (!member) return fail(res, 'Data anggota tidak ditemukan', 404)
+
+    const { reason } = req.body
+    const result = await memberService.submitResignation(member.id, reason)
+    if (!result.success) return fail(res, result.error)
+    return ok(res, null, 'Pengajuan pengunduran diri berhasil dikirim')
+}
+
+/**
+ * POST /api/members/:id/resignation/review
+ * Bendahara: setujui atau tolak pengunduran diri
+ * Body: { decision: 'approved' | 'rejected', notes }
+ */
+async function reviewResignation(req, res) {
+    const { decision, notes } = req.body
+    if (!decision) return fail(res, 'decision wajib diisi')
+
+    const result = await memberService.reviewResignation(
+        req.params.id,
+        req.user.id,
+        decision,
+        notes,
+    )
+    if (!result.success) return fail(res, result.error)
+
+    const msg = decision === 'approved'
+        ? 'Pengunduran diri disetujui, akun anggota dinonaktifkan'
+        : 'Pengajuan pengunduran diri ditolak'
+    return ok(res, null, msg)
+}
+
+/**
+ * GET /api/members/resignations/pending
+ * Bendahara: daftar pengajuan pengunduran diri
+ */
+async function getPendingResignations(req, res) {
+    const list = await memberService.getPendingResignations()
+    return ok(res, list)
+}
+
 module.exports = {
     getAllMembers,
     getAdminStats,
@@ -97,4 +144,7 @@ module.exports = {
     createMember,
     updateMember,
     setMemberStatus,
+    submitResignation,
+    reviewResignation,
+    getPendingResignations,
 }
