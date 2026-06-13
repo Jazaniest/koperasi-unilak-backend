@@ -23,7 +23,6 @@ async function login(req, res) {
 /**
  * POST /api/auth/logout
  * Stateless JWT — tidak perlu aksi server, cukup konfirmasi ke client.
- * Token di-invalidate di sisi client dengan menghapus dari storage.
  */
 async function logout(req, res) {
     return ok(res, null, 'Logout berhasil')
@@ -40,7 +39,6 @@ async function me(req, res) {
 /**
  * POST /api/auth/change-password
  * Body: { oldPassword, newPassword }
- * Hanya bisa mengubah password sendiri
  */
 async function changePassword(req, res) {
     const { oldPassword, newPassword } = req.body
@@ -63,4 +61,55 @@ async function changePassword(req, res) {
     return ok(res, null, 'Kata sandi berhasil diubah')
 }
 
-module.exports = { login, logout, me, changePassword }
+/**
+ * GET /api/auth/me/member
+ * Mengembalikan data member yang terhubung dengan user yang sedang login.
+ * Hanya berlaku untuk role 'user'.
+ */
+async function getMemberProfile(req, res) {
+    if (req.user.role !== 'user') {
+        return fail(res, 'Akses ditolak', 403)
+    }
+
+    const result = await authService.getMemberProfile(req.user.id)
+    if (!result.success) {
+        return fail(res, result.error, 404)
+    }
+
+    return ok(res, result.data)
+}
+
+/**
+ * PUT /api/auth/me/profile
+ * Mengupdate data user (name, phone) dan data member (nik, birth_place_and_date, address, occupation).
+ * Hanya berlaku untuk role 'user'.
+ * Body: { name, phone, nik, birth_place_and_date, address, occupation }
+ */
+async function updateProfile(req, res) {
+    if (req.user.role !== 'user') {
+        return fail(res, 'Akses ditolak', 403)
+    }
+
+    const { name, phone, nik, birth_place_and_date, address, occupation } = req.body
+
+    if (!name || name.trim() === '') {
+        return fail(res, 'Nama tidak boleh kosong')
+    }
+
+    const result = await authService.updateProfile(req.user.id, {
+        name: name.trim(),
+        phone: phone?.trim() ?? null,
+        nik: nik?.trim() ?? null,
+        birth_place_and_date: birth_place_and_date?.trim() ?? null,
+        address: address?.trim() ?? null,
+        occupation: occupation?.trim() ?? null,
+    })
+
+    if (!result.success) {
+        return fail(res, result.error)
+    }
+
+    return ok(res, null, 'Profil berhasil diperbarui')
+}
+
+module.exports = { login, logout, me, changePassword, getMemberProfile, updateProfile }
