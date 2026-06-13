@@ -27,7 +27,8 @@ async function getMemberApplications(req, res) {
  * Body: { amount, purpose, tenorMonths, collateral }
  */
 async function submitApplication(req, res) {
-    const { amount, purpose, tenorMonths, collateral } = req.body
+    const { amount, purpose, tenorMonths } = req.body
+    const collateral = req.file ? req.file.filename : null  // ← dari multer, bukan req.body
 
     if (!amount || !purpose || !tenorMonths) {
         return fail(res, 'Jumlah, tujuan, dan tenor wajib diisi')
@@ -35,7 +36,6 @@ async function submitApplication(req, res) {
     if (Number(amount) <= 0) return fail(res, 'Jumlah pinjaman harus lebih dari 0')
     if (Number(tenorMonths) <= 0) return fail(res, 'Tenor harus lebih dari 0 bulan')
 
-    // Ambil memberId dari profil user yang login
     const member = await memberService.getMemberByUserId(req.user.id)
     if (!member) return fail(res, 'Data anggota tidak ditemukan', 404)
     if (member.status !== 'active') return fail(res, 'Akun anggota tidak aktif', 403)
@@ -44,7 +44,7 @@ async function submitApplication(req, res) {
         amount,
         purpose,
         tenorMonths,
-        collateral,
+        collateral,  // nama file atau null
     })
 
     if (!result.success) return fail(res, result.error)
