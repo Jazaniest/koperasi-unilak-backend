@@ -1,5 +1,6 @@
 const { Saving, Member, User } = require('../models')
 const { generateId } = require('../utils/generateId')
+const { Op } = require('sequelize')
 
 const SAVING_TYPE_LABELS = {
     pokok: 'Simpanan Pokok',
@@ -39,11 +40,11 @@ async function getAllSavingsTransactions() {
  */
 async function getMemberSavings(memberId) {
     const records = await Saving.findAll({
-        where: { memberId },
+        where: { memberId, type: { [Op.ne]: 'pokok' } },
         order: [['date', 'DESC']],
     })
 
-    const byType = { pokok: 0, wajib: 0, sukarela: 0 }
+    const byType = { wajib: 0, sukarela: 0 }
     for (const r of records) {
         if (byType[r.type] !== undefined) byType[r.type] += Number(r.amount)
     }
