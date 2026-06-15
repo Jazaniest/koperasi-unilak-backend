@@ -187,11 +187,151 @@ async function processSimapananWajib() {
     return results
 }
 
+/**
+ * Riwayat transaksi detail per bulan
+ * Menggabungkan: cicilan, simpanan, dan top up
+ */
+async function getTransactionHistory(year, month) {
+    const { Op } = require('sequelize')
+    const { LoanApplication, User } = require('../models')
+
+    const pad = (n) => String(n).padStart(2, '0')
+    const startDate = `${year}-${pad(month)}-01`
+    const endDate = new Date(year, month, 0).toISOString().slice(0, 10)
+    const dateRange = { [Op.between]: [startDate, endDate] }
+
+    const [payments, savings, topupApps, allMembers] = await Promise.all([
+        // Cicilan bulan ini
+        LoanPayment.findAll({
+            where: { date: dateRange },
+            include: [{
+                model: Loan,
+                as: 'loan',
+                attributes: ['id', 'amount', 'remaining', 'tenorMonths', 'monthlyPayment', 'purpose', 'memberId'],
+                include: [{
+                    model: Member,
+                    as: 'member',
+                    attributes: ['id', 'memberNumber'],
+                    include: [{ model: User, as: 'user', attributes: ['name'] }],
+                }],
+            }],
+            order: [['date', 'ASC']],
+        }),
+
+        // Simpanan wajib bulan ini
+        Saving.findAll({
+            where: { date: dateRange, type: 'wajib' },
+            include: [{
+                model: Member,
+                as: 'member',
+                attributes: ['id', 'memberNumber'],
+                include: [{ model: User, as: 'user', attributes: ['name'] }],
+            }],
+        }),
+
+        // Top up disetujui bulan ini
+        LoanApplication.findAll({
+            where: {
+                type: 'topup',
+                status: 'approved',
+                reviewedAt: {
+                    [Op.between]: [
+                        new Date(`${startDate}T00:00:00`),
+                        new Date(`${endDate}T23:59:59`),
+                    ],
+                },
+            },
+            attributes: ['previousLoanId'],
+        }),
+
+        // Semua anggota aktif (untuk yang tidak punya cicilan)
+        Member.findAll({
+            where: { status: 'active' },
+            attributes: ['id', 'memberNumber', 'occupation'],
+            include: [{ model: User, as: 'user', attributes: ['name'] }],
+            order: [['memberNumber', 'ASC']],
+        }),
+    ])
+
+    // Set loan ID yang merupakan hasil top up bulan ini
+    const topupLoanIds = new Set(topupApps.map((t) => t.previousLoanId).filter(Boolean))
+
+    // Map simpanan wajib per memberId
+    const wajibByMember = {}
+    savings.forEach((s) => {
+        wajibByMember[s.member.id] = Number(s.amount)
+    })
+
+    // Map cicilan per memberId
+    const cicilanByMember = {}
+    payments.forEach((p) => {
+        const memberId = p.loan?.memberId
+        if (memberId) cicilanByMember[memberId] = p
+    })
+
+    // Gabungkan: semua anggota aktif sebagai basis baris
+    const rows = allMembers.map((m) => {
+        const cicilan = cicilanByMember[m.id] ?? null
+        const wajib = wajibByMember[m.id] ?? 0
+        const isTopUp = cicilan ? topupLoanIds.has(cicilan.loan?.id) : false
+
+        const angsuranPokok = cicilan ? Number(cicilan.amount) : 0
+        const piutangAwal = cicilan ? Number(cicilan.remainingAfter) + Number(cicilan.amount) : 0
+        const piutangAkhir = cicilan ? Number(cicilan.remainingAfter) : 0
+        const jasa = cicilan ? Math.round((piutangAkhir * 0.12) / 12) : 0
+        const jumlahPotongan = wajib + angsuranPokok + jasa
+        const angsuranKe = cicilan && cicilan.loan?.monthlyPayment > 0
+            ? Math.round((Number(cicilan.loan.amount) - piutangAkhir) / Number(cicilan.loan.monthlyPayment))
+            : 0
+
+        return {
+            memberId: m.id,
+            memberName: m.user?.name ?? '—',
+            memberNumber: m.memberNumber ?? '—',
+            occupation: m.occupation ?? '—',
+            loanAmount: cicilan ? Number(cicilan.loan?.amount ?? 0) : 0,
+            piutangAwal,
+            simpananWajib: wajib,
+            angsuranPokok,
+            jasa,
+            jumlahPotongan,
+            angsuranKe,
+            tenorMonths: cicilan ? (cicilan.loan?.tenorMonths ?? 0) : 0,
+            piutangAkhir,
+            isTopUp,
+            hasPinjaman: !!cicilan,
+        }
+    })
+
+    return { year, month, rows }
+}
+
+/**
+ * Laporan tahunan — agregat 12 bulan
+ */
+async function getYearlyReport(year) {
+    const months = []
+    for (let m = 1; m <= 12; m++) {
+        months.push(await getMonthlyReport(year, m))
+    }
+
+    const totals = months.reduce((acc, r) => ({
+        simpananMasuk: acc.simpananMasuk + r.simpananMasuk,
+        cicilanDiterima: acc.cicilanDiterima + r.cicilanDiterima,
+        bungaDiterima: acc.bungaDiterima + r.bungaDiterima,
+        totalPemasukan: acc.totalPemasukan + r.totalPemasukan,
+    }), { simpananMasuk: 0, cicilanDiterima: 0, bungaDiterima: 0, totalPemasukan: 0 })
+
+    return { year, months, totals }
+}
+
 module.exports = {
     getTreasurerStats,
     getMonthlyReport,
     getLast6MonthsReport,
     processMonthlyCicilan,
     processSimapananWajib,
+    getTransactionHistory,
+    getYearlyReport,
     NOMINAL_WAJIB_DEFAULT,
 }
