@@ -14,6 +14,12 @@ router.get('/stats', authorize(...STAFF_ROLES), c.getStats)
 router.get('/report/monthly',     authorize(...STAFF_ROLES), c.getMonthlyReport)
 router.get('/report/last6months', authorize(...STAFF_ROLES), c.getLast6MonthsReport)
 
+// Riwayat transaksi detail per bulan
+router.get('/history', authorize(...STAFF_ROLES), c.getTransactionHistory)
+
+// Laporan tahunan agregat
+router.get('/report/yearly', authorize(...STAFF_ROLES), c.getYearlyReport)
+
 // Proses manual — hanya admin (operasi destructive)
 router.post('/process/cicilan',        authorize(...ADMIN_ROLES), c.processCicilan)
 router.post('/process/simpanan-wajib', authorize(...ADMIN_ROLES), c.processSimpananWajib)
