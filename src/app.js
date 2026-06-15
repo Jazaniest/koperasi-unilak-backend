@@ -27,6 +27,7 @@ app.use('/api/loan-applications', require('./routes/loanApplications'))
 app.use('/api/treasurer',         require('./routes/treasurer'))
 app.use('/api/system',            require('./routes/system'))
 app.use('/api/registrations',     require('./routes/registrations'))
+app.use('/api/news', require('./routes/news'))
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
