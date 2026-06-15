@@ -61,10 +61,34 @@ async function processSimpananWajib(req, res) {
     )
 }
 
+/**
+ * GET /api/treasurer/history?year=2026&month=3
+ * Riwayat transaksi detail per bulan
+ */
+async function getTransactionHistory(req, res) {
+    const year = parseInt(req.query.year ?? new Date().getFullYear(), 10)
+    const month = parseInt(req.query.month ?? new Date().getMonth() + 1, 10)
+    if (month < 1 || month > 12) return fail(res, 'Bulan tidak valid (1–12)')
+    const data = await treasurerService.getTransactionHistory(year, month)
+    return ok(res, data)
+}
+
+/**
+ * GET /api/treasurer/report/yearly?year=2026
+ * Laporan agregat 12 bulan dalam satu tahun
+ */
+async function getYearlyReport(req, res) {
+    const year = parseInt(req.query.year ?? new Date().getFullYear(), 10)
+    const data = await treasurerService.getYearlyReport(year)
+    return ok(res, data)
+}
+
 module.exports = {
     getStats,
     getMonthlyReport,
     getLast6MonthsReport,
     processCicilan,
     processSimpananWajib,
+    getTransactionHistory,
+    getYearlyReport,
 }
