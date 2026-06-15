@@ -7,6 +7,7 @@ const LoanApplication = require('./LoanApplication')
 const LoanPayment = require('./LoanPayment')
 const SystemLog = require('./SystemLog')
 const RegistrationRequest = require('./RegistrationRequest')
+const News = require('./News')
 
 // ── Associations ──────────────────────────────────────────────────────────────
 
@@ -37,6 +38,19 @@ LoanApplication.belongsTo(User, { foreignKey: 'reviewed_by', as: 'reviewer' })
 User.hasMany(RegistrationRequest, { foreignKey: 'reviewed_by', as: 'reviewedRegistrations', onDelete: 'SET NULL' })
 RegistrationRequest.belongsTo(User, { foreignKey: 'reviewed_by', as: 'reviewer' })
 
+User.hasMany(News, { foreignKey: 'created_by', as: 'news', onDelete: 'RESTRICT' })
+News.belongsTo(User, { foreignKey: 'created_by', as: 'author' })
+
+// LoanPayment → Loan
+// LoanPayment.belongsTo(Loan, { foreignKey: 'loan_id', as: 'loan' })
+// Loan.hasMany(LoanPayment, { foreignKey: 'loan_id', as: 'payments' })
+
+// Saving → Member
+// Saving.belongsTo(Member, { foreignKey: 'member_id', as: 'member' })
+
+// LoanApplication → Member (jika belum ada)
+// LoanApplication.belongsTo(Member, { foreignKey: 'member_id', as: 'member' })
+
 module.exports = {
   sequelize,
   User,
@@ -47,4 +61,5 @@ module.exports = {
   LoanPayment,
   SystemLog,
   RegistrationRequest,
+  News,
 }
