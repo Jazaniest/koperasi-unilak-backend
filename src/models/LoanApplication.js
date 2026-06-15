@@ -50,6 +50,16 @@ const LoanApplication = sequelize.define('loan_applications', {
     allowNull: true,
     field: 'reviewed_at',
   },
+  type: {
+    type: DataTypes.ENUM('regular', 'topup'),
+    allowNull: false,
+    defaultValue: 'regular',
+  },
+  previousLoanId: {
+    type: DataTypes.STRING(30),
+    allowNull: true,
+    field: 'previous_loan_id',
+  },
 }, {
   tableName: 'loan_applications',
 })
