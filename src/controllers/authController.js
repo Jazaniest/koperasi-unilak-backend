@@ -109,7 +109,6 @@ async function updateProfile(req, res) {
         return fail(res, result.error)
     }
 
-    // ← tambahan: kembalikan data user terbaru
     return ok(res, result.data, 'Profil berhasil diperbarui')
 }
 
