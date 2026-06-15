@@ -19,13 +19,14 @@ async function login(email, password) {
     }
 
     const match = await bcrypt.compare(password, user.password)
+    if (user.member && user.member.status === 'inactive') {
+        return { success: false, error: 'Akun Anda sudah nonaktif. Hubungi pengurus koperasi untuk informasi lebih lanjut.' }
+    }
+
     if (!match) {
         return { success: false, error: 'Email atau kata sandi salah' }
     }
 
-    if (user.member && user.member.status === 'inactive') {
-        return { success: false, error: 'Akun Anda sudah nonaktif. Hubungi pengurus koperasi untuk informasi lebih lanjut.' }
-    }
 
     const payload = {
         id: user.id,
@@ -121,13 +122,16 @@ async function updateProfile(userId, { name, phone, nik, birth_place_and_date, a
         return { success: false, error: 'User tidak ditemukan' }
     }
 
-    // Update tabel users
     await user.update({ name, phone })
 
-    // Update tabel members (jika ada record-nya)
     const member = await Member.findOne({ where: { user_id: userId } })
     if (member) {
-        await member.update({ nik, birth_place_and_date, address, occupation })
+        await member.update({ 
+            nik, 
+            birthPlaceAndDate: birth_place_and_date,  // ← fix utama
+            address, 
+            occupation 
+        })
     }
 
     await SystemLog.create({
@@ -136,7 +140,9 @@ async function updateProfile(userId, { name, phone, nik, birth_place_and_date, a
         message: `Update profil: ${user.email}`,
     })
 
-    return { success: true }
+    // ← kembalikan data user terbaru (tanpa password)
+    const { password: _, ...safeUser } = user.toJSON()
+    return { success: true, data: safeUser }
 }
 
 module.exports = { login, changePassword, hashPassword, getMemberProfile, updateProfile }
