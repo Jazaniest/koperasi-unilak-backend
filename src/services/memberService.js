@@ -85,6 +85,8 @@ function enrichMember(member, detailed = false) {
         status: raw.status,
         occupation: raw.occupation,
         monthlyIncome: raw.monthlyIncome,
+        bankName: raw.bankName,
+        bankAccountNumber: raw.bankAccountNumber,
         userId: raw.userId,
         // flatten dari relasi user
         name: raw.user?.name ?? '—',
@@ -139,7 +141,7 @@ async function createMember({ name, email, password, phone, ...memberData }, has
 
     // Hitung nomor anggota berikutnya
     const count = await Member.count()
-    const memberNumber = `KTA-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`
+    const memberNumber = `1000-00000-${String(count + 1).padStart(7, '0')}`;
 
     await User.create({
         id: userId,
@@ -193,6 +195,17 @@ async function setMemberStatus(memberId, status) {
     if (!member) return { success: false, error: 'Anggota tidak ditemukan' }
     await member.update({ status })
     return { success: true }
+}
+
+/**
+ * Anggota mengubah rekening bank miliknya sendiri
+ */
+async function updateBankAccount(memberId, { bankName, bankAccountNumber }) {
+    const member = await Member.findByPk(memberId)
+    if (!member) return { success: false, error: 'Anggota tidak ditemukan' }
+
+    await member.update({ bankName, bankAccountNumber })
+    return { success: true, member: member.toJSON() }
 }
 
 /**
@@ -312,6 +325,7 @@ module.exports = {
     createMember,
     updateMember,
     setMemberStatus,
+    updateBankAccount,
     submitResignation,
     reviewResignation,
     getPendingResignations,

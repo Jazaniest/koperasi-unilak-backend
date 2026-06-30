@@ -27,8 +27,8 @@ async function getMemberApplications(req, res) {
  * Body: { amount, purpose, tenorMonths, collateral }
  */
 async function submitApplication(req, res) {
-    const { amount, purpose, tenorMonths } = req.body
-    const collateral = req.file ? req.file.filename : null  // ← dari multer, bukan req.body
+    const { amount, purpose, tenorMonths, paymentMethod } = req.body
+    const collateral = req.file ? req.file.filename : null
 
     if (!amount || !purpose || !tenorMonths) {
         return fail(res, 'Jumlah, tujuan, dan tenor wajib diisi')
@@ -36,15 +36,25 @@ async function submitApplication(req, res) {
     if (Number(amount) <= 0) return fail(res, 'Jumlah pinjaman harus lebih dari 0')
     if (Number(tenorMonths) <= 0) return fail(res, 'Tenor harus lebih dari 0 bulan')
 
+    const method = paymentMethod || 'transfer'
+    if (!['transfer', 'tunai'].includes(method)) {
+        return fail(res, 'Metode pembayaran tidak valid')
+    }
+
     const member = await memberService.getMemberByUserId(req.user.id)
     if (!member) return fail(res, 'Data anggota tidak ditemukan', 404)
     if (member.status !== 'active') return fail(res, 'Akun anggota tidak aktif', 403)
+
+    if (method === 'transfer' && (!member.bankName || !member.bankAccountNumber)) {
+        return fail(res, 'Lengkapi data rekening bank terlebih dahulu untuk pembayaran via transfer')
+    }
 
     const result = await loanApplicationService.submitLoanApplication(member.id, {
         amount,
         purpose,
         tenorMonths,
-        collateral,  // nama file atau null
+        collateral,
+        paymentMethod: method, // ← tambahan
     })
 
     if (!result.success) return fail(res, result.error)
@@ -77,22 +87,32 @@ async function reviewApplication(req, res) {
  * Anggota: ajukan top up pinjaman
  */
 async function submitTopUp(req, res) {
-    const { amount, purpose, tenorMonths } = req.body
+    const { amount, purpose, tenorMonths, paymentMethod } = req.body
     const collateral = req.file ? req.file.filename : null
 
     if (!amount || !purpose || !tenorMonths) {
         return fail(res, 'Jumlah, tujuan, dan tenor wajib diisi')
     }
 
+    const method = paymentMethod || 'transfer'
+    if (!['transfer', 'tunai'].includes(method)) {
+        return fail(res, 'Metode pembayaran tidak valid')
+    }
+
     const member = await memberService.getMemberByUserId(req.user.id)
     if (!member) return fail(res, 'Data anggota tidak ditemukan', 404)
     if (member.status !== 'active') return fail(res, 'Akun anggota tidak aktif', 403)
+
+    if (method === 'transfer' && (!member.bankName || !member.bankAccountNumber)) {
+        return fail(res, 'Lengkapi data rekening bank terlebih dahulu untuk pembayaran via transfer')
+    }
 
     const result = await loanApplicationService.submitTopUpApplication(member.id, {
         amount,
         purpose,
         tenorMonths,
         collateral,
+        paymentMethod: method, // ← tambahan
     })
 
     if (!result.success) return fail(res, result.error)

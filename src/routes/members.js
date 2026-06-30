@@ -5,6 +5,9 @@ const { authenticate, authorize } = require('../middlewares/auth')
 const ADMIN_ROLES = ['admin', 'super_admin', 'bendahara']
 const STAFF_ROLES = ['admin', 'super_admin', 'bendahara']
 
+// Public — statistik landing page (tidak butuh autentikasi)
+router.get('/public-stats', c.getPublicStats)
+
 // Semua route butuh login
 router.use(authenticate)
 
@@ -39,5 +42,8 @@ router.get('/resignations/pending', authorize('bendahara', 'admin', 'super_admin
 
 // Bendahara setujui / tolak
 router.post('/:id/resignation/review', authorize('bendahara', 'admin', 'super_admin'), c.reviewResignation)
+
+// Anggota ubah rekening sendiri
+router.patch('/me/bank-account', c.updateMyBankAccount)
 
 module.exports = router

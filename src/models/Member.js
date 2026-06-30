@@ -82,6 +82,16 @@ const Member = sequelize.define('members', {
     allowNull: true,
     field: 'monthly_income',
   },
+  bankName: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    field: 'bank_name',
+  },
+  bankAccountNumber: {
+    type: DataTypes.STRING(30),
+    allowNull: true,
+    field: 'bank_account_number',
+  },
 }, {
   tableName: 'members',
 })

@@ -6,7 +6,7 @@ const { generateId } = require('../utils/generateId')
 const MEMBER_INCLUDE = {
     model: Member,
     as: 'member',
-    attributes: ['id', 'memberNumber'],
+    attributes: ['id', 'memberNumber', 'bankName', 'bankAccountNumber'], // ← tambahan field
     include: [{ model: User, as: 'user', attributes: ['name'] }],
 }
 
@@ -15,6 +15,8 @@ function attachMemberInfo(raw) {
         ...raw,
         memberName: raw.member?.user?.name ?? '—',
         memberNumber: raw.member?.memberNumber ?? '—',
+        memberBankName: raw.member?.bankName ?? null,                 // ← tambahan
+        memberBankAccountNumber: raw.member?.bankAccountNumber ?? null, // ← tambahan
     }
 }
 
@@ -72,6 +74,7 @@ async function submitLoanApplication(memberId, data) {
         purpose: data.purpose,
         tenorMonths: Number(data.tenorMonths),
         collateral: data.collateral || 'Tidak ada',
+        paymentMethod: data.paymentMethod || 'transfer', // ← tambahan
         status: 'pending',
     })
 
@@ -175,6 +178,7 @@ async function submitTopUpApplication(memberId, data) {
         purpose: data.purpose,
         tenorMonths: Number(data.tenorMonths),
         collateral: data.collateral || null,
+        paymentMethod: data.paymentMethod || 'transfer', // ← tambahan
         status: 'pending',
         type: 'topup',
         previousLoanId: activeLoan.id,

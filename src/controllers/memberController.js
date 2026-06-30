@@ -90,6 +90,26 @@ async function setMemberStatus(req, res) {
 }
 
 /**
+ * PATCH /api/members/me/bank-account
+ * Anggota mengubah nama bank & nomor rekening miliknya sendiri
+ * Body: { bankName, bankAccountNumber }
+ */
+async function updateMyBankAccount(req, res) {
+    const { bankName, bankAccountNumber } = req.body
+
+    if (!bankName || !bankAccountNumber) {
+        return fail(res, 'Nama bank dan nomor rekening wajib diisi')
+    }
+
+    const member = await memberService.getMemberByUserId(req.user.id)
+    if (!member) return fail(res, 'Data anggota tidak ditemukan', 404)
+
+    const result = await memberService.updateBankAccount(member.id, { bankName, bankAccountNumber })
+    if (!result.success) return fail(res, result.error)
+    return ok(res, result.member, 'Rekening berhasil diperbarui')
+}
+
+/**
  * POST /api/members/me/resignation
  * Anggota mengajukan pengunduran diri
  * Body: { reason }
@@ -136,6 +156,21 @@ async function getPendingResignations(req, res) {
     return ok(res, list)
 }
 
+/**
+ * GET /api/members/public-stats
+ * Public — statistik ringkasan untuk landing page (tanpa data sensitif)
+ */
+async function getPublicStats(req, res) {
+    const stats = await memberService.getAdminStats()
+    // Hanya expose field yang aman untuk publik
+    return ok(res, {
+        totalMembers: stats.totalMembers,
+        activeMembers: stats.activeMembers,
+        totalSavings: stats.totalSavings,
+        totalLoans: stats.totalLoans,
+    })
+}
+
 module.exports = {
     getAllMembers,
     getAdminStats,
@@ -144,7 +179,9 @@ module.exports = {
     createMember,
     updateMember,
     setMemberStatus,
+    updateMyBankAccount,
     submitResignation,
     reviewResignation,
     getPendingResignations,
+    getPublicStats,
 }

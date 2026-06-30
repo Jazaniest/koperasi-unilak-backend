@@ -60,6 +60,12 @@ const LoanApplication = sequelize.define('loan_applications', {
     allowNull: true,
     field: 'previous_loan_id',
   },
+  paymentMethod: {
+    type: DataTypes.ENUM('transfer', 'tunai'),
+    allowNull: false,
+    defaultValue: 'transfer',
+    field: 'payment_method',
+  },
 }, {
   tableName: 'loan_applications',
 })
