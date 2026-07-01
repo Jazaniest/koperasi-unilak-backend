@@ -12,7 +12,7 @@ async function startServer() {
 
     // Sync model ke tabel (alter: true aman untuk development)
     // Ganti dengan migration Sequelize jika sudah production
-    await sequelize.sync({ alter: process.env.NODE_ENV === 'development' })
+    await sequelize.sync();
     console.log('✅ Model tersinkron ke database')
 
     app.listen(PORT, () => {
