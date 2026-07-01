@@ -12,11 +12,11 @@ const Loan = sequelize.define('loans', {
     field: 'member_id',
   },
   amount: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.DECIMAL(18, 2),
     allowNull: false,
   },
   remaining: {
-    type: DataTypes.BIGINT,
+    type:DataTypes.DECIMAL(18, 2),
     allowNull: false,
   },
   interestRate: {
@@ -30,7 +30,7 @@ const Loan = sequelize.define('loans', {
     field: 'tenor_months',
   },
   monthlyPayment: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.DECIMAL(18, 2),
     allowNull: false,
     field: 'monthly_payment',
   },

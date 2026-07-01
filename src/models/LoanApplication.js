@@ -12,7 +12,7 @@ const LoanApplication = sequelize.define('loan_applications', {
     field: 'member_id',
   },
   amount: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.DECIMAL(18, 2),
     allowNull: false,
   },
   purpose: {

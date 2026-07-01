@@ -12,7 +12,7 @@ const LoanPayment = sequelize.define('loan_payments', {
     field: 'loan_id',
   },
   amount: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.DECIMAL(18, 2),
     allowNull: false,
   },
   date: {
@@ -24,7 +24,7 @@ const LoanPayment = sequelize.define('loan_payments', {
     allowNull: true,
   },
   remainingAfter: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.DECIMAL(18, 2),
     allowNull: false,
     field: 'remaining_after',
   },
