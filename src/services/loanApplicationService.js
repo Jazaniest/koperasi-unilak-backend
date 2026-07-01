@@ -111,9 +111,8 @@ async function reviewLoanApplication(appId, adminId, decision, adminNotes) {
 
     if (decision === 'approved') {
         const INTEREST_RATE = 12 // persen per tahun, sesuai loanService frontend
-        const monthlyPayment = Math.round(
-            (app.amount * (1 + INTEREST_RATE / 100)) / app.tenorMonths,
-        )
+        const calculatedMonthly = (app.amount * (1 + INTEREST_RATE / 100)) / app.tenorMonths;
+        const monthlyPayment = Math.round(calculatedMonthly * 100) / 100;
 
         newLoan = await Loan.create({
             id: generateId('ln'),
@@ -246,9 +245,8 @@ async function reviewTopUpApplication(appId, adminId, decision, adminNotes) {
 
         // 2. Buat pinjaman baru
         const INTEREST_RATE = 12
-        const monthlyPayment = Math.round(
-            (app.amount * (1 + INTEREST_RATE / 100)) / app.tenorMonths,
-        )
+        const calculatedMonthly = (app.amount * (1 + INTEREST_RATE / 100)) / app.tenorMonths;
+        const monthlyPayment = Math.round(calculatedMonthly * 100) / 100;
 
         newLoan = await Loan.create({
             id: generateId('ln'),

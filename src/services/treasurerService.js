@@ -49,7 +49,7 @@ async function getTreasurerStats() {
         totalSisaPinjaman: sisaPinjaman,
         totalPinjamanAktif,
         totalKas,
-        estimasiBungaBulanIni: Math.round(estimasiBungaBulanIni),
+        estimasiBungaBulanIni: Math.round(estimasiBungaBulanIni * 100) / 100,
         totalAnggota,
         totalAnggotaAktif,
     }
@@ -76,8 +76,8 @@ async function getMonthlyReport(year, month) {
     const bungaDiterima = Math.round(
         activeLoans.reduce((sum, l) => {
             return sum + (Number(l.remaining) * Number(l.interestRate)) / 100 / 12
-        }, 0),
-    )
+        }, 0) * 100
+    ) / 100
 
     const simpanan = Number(simpananMasuk ?? 0)
     const cicilan = Number(cicilanDiterima ?? 0)
@@ -112,7 +112,7 @@ async function processMonthlyCicilan() {
     for (const loan of activeLoans) {
         const bayar = Math.min(Number(loan.monthlyPayment), Number(loan.remaining))
         const newRemaining = Math.max(0, Number(loan.remaining) - bayar)
-        const newStatus = newRemaining === 0 ? 'lunas' : 'active'
+        const newStatus = newRemaining <= 0.001 ? 'lunas' : 'active'
 
         await loan.update({ remaining: newRemaining, status: newStatus })
 
@@ -278,10 +278,10 @@ async function getTransactionHistory(year, month) {
         const angsuranPokok = cicilan ? Number(cicilan.amount) : 0
         const piutangAwal = cicilan ? Number(cicilan.remainingAfter) + Number(cicilan.amount) : 0
         const piutangAkhir = cicilan ? Number(cicilan.remainingAfter) : 0
-        const jasa = cicilan ? Math.round((piutangAkhir * 0.12) / 12) : 0
+        const jasa = cicilan ? Math.round(((piutangAkhir * 0.12) / 12) * 100) / 100 : 0
         const jumlahPotongan = wajib + angsuranPokok + jasa
         const angsuranKe = cicilan && cicilan.loan?.monthlyPayment > 0
-            ? Math.round((Number(cicilan.loan.amount) - piutangAkhir) / Number(cicilan.loan.monthlyPayment))
+            ? Math.round(((Number(cicilan.loan.amount) - piutangAkhir) / Number(cicilan.loan.monthlyPayment)) * 100) / 100
             : 0
 
         return {

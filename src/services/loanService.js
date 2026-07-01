@@ -82,7 +82,7 @@ async function recordLoanPayment({ loanId, amount, description }) {
     if (paid > Number(loan.remaining)) return { success: false, error: 'Jumlah melebihi sisa pinjaman' }
 
     const newRemaining = Math.max(0, Number(loan.remaining) - paid)
-    const newStatus = newRemaining === 0 ? 'lunas' : 'active'
+    const newStatus = newRemaining <= 0.001 ? 'lunas' : 'active'
 
     await loan.update({ remaining: newRemaining, status: newStatus })
 
