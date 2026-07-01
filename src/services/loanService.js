@@ -70,6 +70,48 @@ async function getLoanDetail(loanId) {
 }
 
 /**
+ * Generate jadwal cicilan dinamis untuk sebuah pinjaman
+ */
+async function getLoanInstallmentSchedule(loanId) {
+    const loan = await Loan.findByPk(loanId, {
+        include: [{ model: LoanPayment, as: 'payments', order: [['date', 'ASC']] }]
+    });
+
+    if (!loan) return null;
+
+    const schedule = [];
+    let paymentIndex = 0;
+    const payments = loan.payments;
+
+    for (let i = 1; i <= loan.tenorMonths; i++) {
+        const dueDate = new Date(loan.startDate);
+        dueDate.setMonth(dueDate.getMonth() + i);
+
+        const installment = {
+            sequence: i,
+            dueDate: dueDate.toISOString().slice(0, 10),
+            amount: loan.monthlyPayment,
+            status: 'UPCOMING',
+            paidDate: null,
+        };
+
+        // Coba cari pembayaran yang cocok untuk cicilan ini
+        // Asumsi sederhana: satu pembayaran per cicilan
+        if (paymentIndex < payments.length) {
+            // Kita bisa membuat logika yang lebih canggih di sini jika 1 pembayaran bisa untuk beberapa cicilan
+            installment.status = 'PAID';
+            installment.paidDate = payments[paymentIndex].date;
+            paymentIndex++;
+        }
+
+        schedule.push(installment);
+    }
+
+    return schedule;
+}
+
+
+/**
  * Catat pembayaran cicilan (oleh bendahara)
  */
 async function recordLoanPayment({ loanId, amount, description }) {
@@ -159,4 +201,5 @@ module.exports = {
     recordLoanPayment,
     settleLoan,
     getLoanPayments,
+    getLoanInstallmentSchedule, // Export fungsi baru
 }

@@ -32,6 +32,17 @@ async function getLoanDetail(req, res) {
 }
 
 /**
+ * GET /api/loans/:id/installments
+ * Jadwal cicilan dinamis untuk satu pinjaman
+ */
+async function getLoanInstallments(req, res) {
+    const schedule = await loanService.getLoanInstallmentSchedule(req.params.id)
+    if (!schedule) return fail(res, 'Pinjaman tidak ditemukan', 404)
+    return ok(res, schedule)
+}
+
+
+/**
  * GET /api/loans/:id/payments
  * Riwayat pembayaran satu pinjaman
  */
@@ -77,4 +88,5 @@ module.exports = {
     getLoanPayments,
     recordPayment,
     settleLoan,
+    getLoanInstallments, // Export fungsi baru
 }
